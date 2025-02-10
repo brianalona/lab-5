@@ -1,6 +1,6 @@
 ---
 title: "Lab 5: Murder in SQL City"
-author: "Your name here!"
+author: "Briana Lonappan"
 format: html
 editor: source
 embed-resources: true
@@ -15,6 +15,7 @@ Northwestern University's Knight Lab wanted to help sharpen users' database skil
 The relational data you will be working with contains tables with different pieces of information pertinent to the crime - people, social media check-ins, driver's licenses, crime scene reports, police interviews, and more!
 
 ![Database schema](https://mystery.knightlab.com/schema.png)
+
 
 Solve the murder mystery, showing **all of your work in this document**. Your document and code must be well organized, easy to follow, and reproducible.
 
@@ -56,14 +57,107 @@ Detective Wickham reaches out to you...
 
 ```{r}
 #| label: inspecting-crime-scene-report
+library(tidyverse)
+library(lubridate)
+crime_scene <- crime_scene_report |>
+  mutate(date = ymd(date)) |>
+  filter(city == "SQL City",
+         date == ymd("20180115"),
+         type == "murder")
+
+print(crime_scene)
 
 ```
 
+```{r}
+#| label: Witness-Interviews
+library(tidyverse)
+library(lubridate)
+witnesses <- person %>%
+  filter(
+    (address_street_name == "Northwestern Dr" & address_number == max(address_number[address_street_name == "Northwestern Dr"])) |
+      (address_street_name == "Franklin Ave" & str_detect(name, "^Annabel"))
+  )
+
+print(witnesses)
+
+
+```
+
+
+
+```{r}
+#| label: potential-suspects
+library(tidyverse)
+library(lubridate)
+witness_interviews <- interview %>%
+  filter(person_id %in% witnesses$id) %>%
+  left_join(witnesses, by = c("person_id" = "id"))
+
+print(witness_interviews)
+
+
+```
+```{r}
+
+
+#| label:Gym-Tag-Clue
+library(tidyverse)
+library(lubridate)
+suspect <- get_fit_now_member %>%
+  filter(str_starts(id, "48Z"), membership_status == "gold") %>%
+  inner_join(get_fit_now_check_in, by = c("id" = "membership_id")) %>%
+  filter(check_in_date == 20180109) %>%
+  inner_join(person, by = c("person_id" = "id")) %>%
+  inner_join(drivers_license, by = c("license_id" = "id")) %>%
+  filter(str_detect(plate_number, "H42W"))
+
+print(suspect)
+
+```
+
+```{r}
+#| label: Jeremy-Bowers-Interview
+library(tidyverse)
+library(lubridate)
+suspect_interview <- interview %>%
+  filter(person_id == suspect$person_id)
+
+print(suspect_interview)
+
+```
+
+```{r}
+#| label: Woman-with-Tesla
+library(tidyverse)
+library(lubridate)
+mastermind <- person %>%
+  inner_join(drivers_license, by = c("license_id" = "id")) %>%
+  inner_join(facebook_event_checkin, by = c("id" = "person_id")) %>%
+  filter(
+    gender == "female",
+    hair_color == "red",
+    car_make == "Tesla",
+    car_model == "Model S",
+    event_name == "SQL Symphony Concert",
+    between(date, 20171201, 20171231)
+  ) %>%
+  group_by(name) %>%
+  summarise(attendance = n()) %>%
+  filter(attendance == 3)
+
+print(mastermind)
+
+
+
+```
 
 **Follow the evidence to the person responsible for the murder, building a report as you go.**
 Hint: Make sure you check for interviews with any suspects!
 
 
+
 ## And the final suspect is...
+**The suspect is Miranda Priestly.**
 
 *Put the name of the person responsible for the murder here:*
